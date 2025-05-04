@@ -1,5 +1,5 @@
 import json
-from typing import Callable
+from typing import Callable, get_origin, get_args, Literal
 
 ### 
 # Wraps function callables in a Tool class
@@ -16,12 +16,34 @@ def get_fn_signature(fn: Callable) -> dict:
     fn_signature: dict = {
         "name": fn.__name__,
         "description": fn.__doc__,
-        "parameters": {"properties": {}},
+        "parameters": {"properties": {}, "required": []},
     }
-    schema = {
-        k: {"type": v.__name__} for k, v in fn.__annotations__.items() if k != "return"
-    }
-    fn_signature['parameters']['properties'] = schema
+
+    for param, annot in fn.__annotations__.items():
+        if param == 'return':
+            continue
+
+        origin = get_origin(annot)
+        args = get_args(annot)
+
+        if origin is Literal: 
+            # Literal types
+            fn_signature['parameters']['properties'][param] = {
+                "type": "string",
+                "enum": list(args)
+            }
+        elif origin is list and get_origin(args[0]) is Literal:
+            # Literal[List] types
+            fn_signature['parameters']['properties'][param] = {
+                "type": "array",
+                "items": {"type": "string", "enum": list(get_args(args[0]))}
+            }
+        elif isinstance(annot, type):
+            # Any other type
+            fn_signature['parameters']['properties'][param] = {
+                "type": annot.__name__
+            }
+        fn_signature["parameters"]["required"].append(param)
     return fn_signature
 
 class Tool:

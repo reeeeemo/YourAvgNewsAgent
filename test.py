@@ -5,10 +5,12 @@ from typing import Literal, List
 import os
 import requests
 from datetime import datetime, timedelta
+import json
 
 LANGUAGES = Literal['en', 'ar', 'de', 'es', 'fr', 'he', 'it', 'nl', 'no', 'pt', 'ru', 'sv', 'ud', 'zh']
 
-def web_search(q: str, 
+@tool
+def news_search(q: str, 
                searchIn: List[Literal['title', 'description', 'content']] | None = None,
                dateFrom: str | None = None,
                dateTo: str | None = None,
@@ -31,21 +33,32 @@ def web_search(q: str,
         dateFrom = (datetime.now() - timedelta(days=1)).isoformat(timespec='seconds') + 'Z'
     if dateTo is None:
         dateTo = datetime.now().isoformat(timespec='seconds') + 'Z'
+    if searchIn:
+        searchIn = ','.join(searchIn)
     
     new_url = os.getenv('WEB_SEARCH_URL')
+    api_key = os.getenv('WEB_SEARCH_API_KEY')
     params = {k: v for k, v in locals().items() if v is not None}
+    params['apiKey'] = api_key
 
-    for header, value in params.items():
-        new_url += f'{header}={value}&'
-    new_url += f'apiKey={os.getenv("WEB_SEARCH_API_KEY")}'
-    
-    response = requests.request('GET', new_url)
-    print(response.text)
+    response = requests.get(new_url, params=params)
+    response_json = response.json()
 
-    return ""
+    schema = {"status": response_json.get('status', 'error'), 
+              "totalResults": response_json.get('totalResults', 0), 
+              "articles": []}
+    for article in response_json.get('articles', []):
+        schema['articles'].append({
+            "title": article.get('title', 'No Title'),
+            "name": article.get('source', {}).get('name', 'No Name'),
+            "description": article.get('description', 'No Description'),
+            "url": article.get('url', 'No Url'),
+        })
+
+    return json.dumps(schema, indent=2)
 
 load_dotenv()
 
-web_search('ai')
+# print(news_search('ai news today', sortBy='relevancy', searchIn=['description', 'title']))
 
-# ag = ToolAgent(tools=[tool(web_search)])
+ag = ToolAgent(tools=[news_search])
