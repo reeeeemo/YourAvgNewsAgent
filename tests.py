@@ -93,43 +93,43 @@ def test_add_documents(chroma_db, temp_txt_file):
     ###################
 '''
 
-from src.agent import Agent
+from src.tool import tool
+from src.agent import ToolAgent
 
 @pytest.fixture
-def agent(config):
+def tool_decorator():
+    def greetings(name: str):
+        "Greets the user"
+        print(f'Greetings, {name}')
+    return tool(greetings)
+
+@pytest.fixture
+def agent(tool_decorator):
+    return ToolAgent(tools=[tool_decorator])
+
+
+def test_tool(tool_decorator):
     '''
-        Create ChromaDB instance called `test_db`
+        Test sample tool and it's functions
     '''
-    return Agent(config_path='config.json')
+    # test class vars
+    assert tool_decorator.name, "Tool name should be initialized"
+    assert json.dumps(tool_decorator.fn_signature), "Tool signature should be initalized"
 
-def test_agent_web_search(agent):
+    # test class functions 
+    assert tool_decorator(name="meow") is None
+    schema = f'{{"name": "{tool_decorator.name}", "arguments": {{"name": "meowie"}}, "id": "2"}}'
+    assert type(tool_decorator.validate_args(json.loads(schema))['arguments']['name']) == str, "Variables should be validated"
+
+def test_agent(agent):
     '''
-        Test agent initialization
+        Test sample agent and it's tools / functions
     '''
-    result = agent.web_search('What is a cat?', 'noLimit')
+    # test class vars
+    assert agent.tools, "Tool list should be initialized"
+    assert agent.tools_dict, "Tool dictionary should be initialized"
 
-    assert (result) # do we get a response from the web search
-
-def test_agent_chat(agent):
-    response = agent.chat('What is a cat?')
-
-    assert(len(agent.memory) > 0) # conversation history saved
-    assert(response)
-    assert(response != 'An error occurred while processing your request. Please try again.')
-
-def test_agent_decision(agent):
-    decision = "{'action': 'search', 'freshness': 'noLimit', 'query': 'what is a cat?'}"
-    search, didSearch = agent.decide(decision)
-
-    assert(search)
-    assert(didSearch) # no errors
-
-def test_agent_parse(agent):
-    decision = '{"action": "search", "freshness": "noLimit", "query": "what is a cat?"}'
-    false_decision = "Cats are pretty funky creatures!"
-    response = agent.parse_response(decision)
-    false_response = agent.parse_response(false_decision)
-    assert(response['query'] != 'RETRY')
-    assert(false_response['query'] != 'RETRY')
-    assert(false_response['action'] == 'answer')
-    assert(response['action'] == 'search')
+    # test class functions
+    assert len(agent.get_tool_signatures()) > 0, "Tool should be added to the agent"
+    schema = f'{{"name": "{agent.tools[0].name}", "arguments": {{"name": "meowie"}}, "id": "2"}}'
+    assert len(agent.process_tool_calls([schema])) > 0, "Tool should be processed with return value"
