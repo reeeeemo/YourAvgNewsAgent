@@ -62,3 +62,6 @@ load_dotenv()
 # print(news_search('ai news today', sortBy='relevancy', searchIn=['description', 'title']))
 
 ag = ToolAgent(tools=[news_search])
+
+while True:
+    print(ag.run(input('Query here: ')))

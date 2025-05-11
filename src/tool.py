@@ -1,9 +1,5 @@
 import json
-from typing import Callable, get_origin, get_args, Literal
-
-### 
-# Wraps function callables in a Tool class
-### 
+from typing import Callable, get_origin, get_args, Literal, Union
 
 def get_fn_signature(fn: Callable) -> dict:
     '''
@@ -16,7 +12,7 @@ def get_fn_signature(fn: Callable) -> dict:
     fn_signature: dict = {
         "name": fn.__name__,
         "description": fn.__doc__,
-        "parameters": {"properties": {}, "required": []},
+        "parameters": {},
     }
 
     for param, annot in fn.__annotations__.items():
@@ -26,24 +22,31 @@ def get_fn_signature(fn: Callable) -> dict:
         origin = get_origin(annot)
         args = get_args(annot)
 
+        if origin is Union:
+            # Union types
+            none_args = [arg for arg in args if arg is not type(None)]
+            if len(none_args) == 1:
+                origin = get_origin(none_args[0])
+                args = get_args(none_args[0])
+            else:
+                continue
         if origin is Literal: 
             # Literal types
-            fn_signature['parameters']['properties'][param] = {
+            fn_signature['parameters'][param] = {
                 "type": "string",
                 "enum": list(args)
             }
         elif origin is list and get_origin(args[0]) is Literal:
             # Literal[List] types
-            fn_signature['parameters']['properties'][param] = {
+            fn_signature['parameters'][param] = {
                 "type": "array",
                 "items": {"type": "string", "enum": list(get_args(args[0]))}
             }
         elif isinstance(annot, type):
             # Any other type
-            fn_signature['parameters']['properties'][param] = {
+            fn_signature['parameters'][param] = {
                 "type": annot.__name__
             }
-        fn_signature["parameters"]["required"].append(param)
     return fn_signature
 
 class Tool:
@@ -73,21 +76,29 @@ class Tool:
                 dict tool call dictionary with arguments converted to correct types
         '''
         fn_sig = json.loads(self.fn_signature)
-        properties = fn_sig['parameters']['properties']
+        properties = fn_sig['parameters']
+        args = tool_call_schema['arguments']
 
         type_mapping = {
             'int': int,
             'str': str,
             'bool': bool,
-            'float': float
+            'float': float,
         }
 
-        for arg_name, arg_val in tool_call_schema['arguments'].items():
-            expected_type = properties[arg_name].get('type')
-
-            if not isinstance(arg_val, type_mapping[expected_type]):
-                tool_call_schema['arguments'][arg_name] = type_mapping[expected_type](arg_val)
-
+        for arg_name, arg_val in args.items():
+            expected_type = properties.get(arg_name, {}).get('type')
+            
+            if expected_type in type_mapping:
+                if not isinstance(arg_val, type_mapping[expected_type]):
+                    args[arg_name] = type_mapping[expected_type](arg_val)
+            elif expected_type == 'array':
+                if not isinstance(arg_val, list):
+                    args[arg_name] = [arg_val]
+                
+                item_schema = properties[arg_name].get('items')
+                if item_schema.get('type') == 'string' and 'enum' in item_schema:
+                    args[arg_name] = [str(item) for item in args[arg_name]]
         return tool_call_schema
 
     def __call__(self, **kwargs):
