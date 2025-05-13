@@ -1,7 +1,5 @@
-from typing import Tuple
 import json
 import logging
-from datetime import datetime
 import pandas as pd
 from src.tool import Tool
 from groq import Groq
@@ -17,11 +15,11 @@ into functions. Pay special attention to the properties 'types'. You should use 
 For each function call return a json object with function name and arguments within <tool_call></tool_call>
 XML tags as follows:
 
-<tool_call>
+<tool_calls>
 {"name": <function-name>,"arguments": <args-dict>,  "id": <monotonically-increasing-id>}
-</tool_call>
+</tool_calls>
 
-Here are the available tools:
+Only use information from tools if you use the tools. Here are the available tools:
 
 <tools>
 %s
@@ -41,6 +39,7 @@ class ToolAgent():
             tools_dict (dict) dictionary mapping tool names to callable objects
             client (Groq): client to query message from LLM
             tokenizer: tokenizer to truncuate messages in case they are too long
+            chat_history (list): previous chats with system
     '''
     def __init__(self, tools: Tool | list[Tool]):
         self.model = os.getenv('MODEL')
@@ -50,6 +49,9 @@ class ToolAgent():
             api_key=os.getenv("GROQ_API_KEY")
         )
         self.tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
+        self.chat_history = []
+
+        self.chat_history.append({"role": "system", "content": TOOL_SYSTEM_PROMPT % self.get_tool_signatures()})
 
     def get_tool_signatures(self) -> str:
         '''
@@ -73,12 +75,12 @@ class ToolAgent():
             tool_name = tool_call['name']
             tool = self.tools_dict[tool_name]
 
-            print(Fore.CYAN + f'\nUsing Tool: {tool.name}')
+            logging.debug(Fore.CYAN + f'\nUsing Tool: {tool.name}')
 
             val_tool_call = tool.validate_args(tool_call_schema=tool_call)
             result = tool(**val_tool_call['arguments'])
 
-            #print(Fore.CYAN + f'\nTool Result: {result}')
+            logging.debug(Fore.CYAN + f'\nTool Result: {result}')
 
             observations[val_tool_call['id']] = result
         return observations
@@ -101,9 +103,12 @@ class ToolAgent():
             Sends a request to Groq to interact with the LLM
             Args:
                 messages (list[dict]): list of message objects containing chat history
+                max_total_tokens (int): total tokens for groq to recieve
+                max_response_tokens (int): total tokens that groq is allowed to output
             Returns:
                 str: content of the model's response
         '''
+        # ALWAYS include prompt, but limit conversation history to max_total_tokens
         prompt = messages[0]
         usr_messages = messages[1:]
 
@@ -116,8 +121,10 @@ class ToolAgent():
                 break
             trimmed.append(msg)
             total_tokens += msg_tokens
-
-        res = self.client.chat.completions.create(messages=trimmed, model=self.model, max_tokens=max_response_tokens)
+        try:
+            res = self.client.chat.completions.create(messages=trimmed, model=self.model, max_tokens=max_response_tokens)
+        except Exception as e:
+            return f'Error when waiting for request from model: {e}. Please try again'
         return str(res.choices[0].message.content)
 
     def run(self, usr_msg: str) -> str:
@@ -129,10 +136,11 @@ class ToolAgent():
                 str: final output response
         '''
         usr_prompt = {"role": "user", "content": usr_msg}
-        sys_prompt = {"role": "system", "content": TOOL_SYSTEM_PROMPT % self.get_tool_signatures()}        
+        sys_prompt = self.chat_history[0]
+
 
         tool_call_response = self.chat([sys_prompt, usr_prompt])
-        tool_calls = self.extract_tag_content(str(tool_call_response), "tool_call")
+        tool_calls = self.extract_tag_content(str(tool_call_response), "tool_calls")
 
         if tool_calls:
             observations = self.process_tool_calls(tool_calls)
@@ -142,5 +150,6 @@ class ToolAgent():
                 "content": f"Observation: {json.dumps(observations, indent=2)}"
             }
 
-            return self.chat([usr_prompt, observation_msg])
+            response = self.chat([usr_prompt, observation_msg])
+            return response
         return tool_call_response # if no tools are needed
