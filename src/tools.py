@@ -60,4 +60,7 @@ def news_search(q: str,
         f"{i+1}. **{a['title']}**\n   {a['description']}\n   {a['url']}"
         for i, a in enumerate(schema['articles'])
     ])
+
+    if not result:
+        return "There was no articles found for the query {q}. Please try again"
     return f"Here are the latest news articles for the query {q}:\n\n{result}"

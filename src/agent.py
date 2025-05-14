@@ -10,14 +10,16 @@ from transformers import AutoTokenizer
 
 TOOL_SYSTEM_PROMPT = """
 You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags.
-You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug
-into functions. Pay special attention to the properties 'types'. You should use those types as in a Python dict.
+You may call one or more functions to assist with the user query. Don't make assumptions or hallucinate what values to plug
+into functions. All function arguments must be passed within the "arguments" key as a JSON object.
+Pay special attention to the properties 'types'. You should use those types as in a Python dict.
 For each function call return a json object with function name and arguments within <tool_call></tool_call>
 XML tags as follows:
 
 <tool_calls>
 {"name": <function-name>,"arguments": <args-dict>,  "id": <monotonically-increasing-id>}
 </tool_calls>
+
 
 Only use information from tools if you use the tools. Here are the available tools:
 
@@ -50,6 +52,7 @@ class ToolAgent():
         )
         self.tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
         self.chat_history = []
+        self.tool_counter = 0
 
         self.chat_history.append({"role": "system", "content": TOOL_SYSTEM_PROMPT % self.get_tool_signatures()})
 
@@ -71,18 +74,26 @@ class ToolAgent():
         '''
         observations = {}
         for tool_call_str in tool_calls:
-            tool_call = json.loads(tool_call_str)
-            tool_name = tool_call['name']
-            tool = self.tools_dict[tool_name]
+            try:
+                tool_call = json.loads(tool_call_str)
 
-            logging.debug(Fore.CYAN + f'\nUsing Tool: {tool.name}')
+                if "id" not in tool_call:
+                    tool_call["id"] = f"{self.tool_counter}"
+                    self.tool_counter += 1
+                tool_name = tool_call['name']
+                tool = self.tools_dict[tool_name]
 
-            val_tool_call = tool.validate_args(tool_call_schema=tool_call)
-            result = tool(**val_tool_call['arguments'])
+                logging.debug(Fore.CYAN + f'\nUsing Tool: {tool.name}')
 
-            logging.debug(Fore.CYAN + f'\nTool Result: {result}')
+                val_tool_call = tool.validate_args(tool_call_schema=tool_call)
+                result = tool(**val_tool_call['arguments'])
 
-            observations[val_tool_call['id']] = result
+                logging.debug(Fore.CYAN + f'\nTool Result: {result}')
+
+                observations[val_tool_call['id']] = result
+            except Exception as e:
+                logging.error(f'Could not parse tool {tool_call_str}. Error: {e}')
+                return {}
         return observations
     
     def extract_tag_content(self, txt: str, tag: str) -> list:
@@ -119,7 +130,7 @@ class ToolAgent():
             msg_tokens = len(self.tokenizer.encode(msg['content']))
             if total_tokens + msg_tokens > max_total_tokens:
                 break
-            trimmed.append(msg)
+            trimmed.insert(1, msg)
             total_tokens += msg_tokens
         try:
             res = self.client.chat.completions.create(messages=trimmed, model=self.model, max_tokens=max_response_tokens)
@@ -135,11 +146,11 @@ class ToolAgent():
             Returns:
                 str: final output response
         '''
-        usr_prompt = {"role": "user", "content": usr_msg}
-        sys_prompt = self.chat_history[0]
+        self.chat_history.append({"role": "user", "content": usr_msg})
+        #usr_prompt = self.chat_history[-1]
+        #sys_prompt = self.chat_history[0]
 
-
-        tool_call_response = self.chat([sys_prompt, usr_prompt])
+        tool_call_response = self.chat(self.chat_history) # [sys_prompt, usr_prompt]
         tool_calls = self.extract_tag_content(str(tool_call_response), "tool_calls")
 
         if tool_calls:
@@ -147,9 +158,13 @@ class ToolAgent():
 
             observation_msg = {
                 "role": "user",
-                "content": f"Observation: {json.dumps(observations, indent=2)}"
+                "content": f"Tool results: {json.dumps(observations, indent=2)}"
             }
 
-            response = self.chat([usr_prompt, observation_msg])
+            self.chat_history.append(observation_msg)
+
+            response = self.chat(self.chat_history + [{"role": "user", "content": "Tool response has been recieved, provide a non-tool call response using the results to the query."}]) # [usr_prompt, observation_msg]
+            self.chat_history.append({"role": "assistant", "content": response})
             return response
+        self.chat_history.append({"role": "assistant", "content": tool_call_response})
         return tool_call_response # if no tools are needed
