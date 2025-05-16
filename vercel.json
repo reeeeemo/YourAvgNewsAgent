@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "buildCommand": "cd frontend && npm install && npm run build",
+    "outputDirectory": "frontend/build",
+    "functions": {
+        "backend/app.py": {
+            "runtime": "python3.11"
+        }
+    },
+    "routes": [
+        {
+            "src": "/query",
+            "methods": ["POST"],
+            "dest": "/backend/app.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/frontend/$1"
+        }
+    ]
+}

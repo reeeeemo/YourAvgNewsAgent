@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from src.agent import ToolAgent
 from dotenv import load_dotenv
 from src.tools import news_search
@@ -21,7 +21,7 @@ def query():
     agent.chat_history = chat_history
 
     response = agent.run(usr_query)
-    return response
+    return jsonify({"response": response})
 
 
 # private server test

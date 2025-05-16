@@ -31,7 +31,7 @@ function App() {
 
   const queryCall = async (query) => {
     try {
-      const response = await fetch(`http://localhost:5000/query?q=${encodeURIComponent(query)}`, {
+      const response = await fetch('/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,8 +42,8 @@ function App() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.text();
-      return data;
+      const data = await response.json();
+      return data.response;
     } catch (error) {
       console.error('Error fetching data:', error);
       return 'Sorry, something went wrong.';
