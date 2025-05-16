@@ -2,11 +2,6 @@
     "version": 2,
     "buildCommand": "cd frontend && npm install && npm run build",
     "outputDirectory": "frontend/build",
-    "functions": {
-        "backend/app.py": {
-            "runtime": "@vercel/python"
-        }
-    },
     "routes": [
         {
             "src": "/query",
