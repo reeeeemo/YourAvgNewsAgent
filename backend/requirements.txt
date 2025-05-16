@@ -1,0 +1,9 @@
+flask
+flask-cors
+python-dotenv
+transformers
+pandas
+requests
+colorama
+pytest
+groq
