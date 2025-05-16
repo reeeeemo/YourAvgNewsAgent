@@ -4,7 +4,7 @@
     "outputDirectory": "frontend/build",
     "functions": {
         "backend/app.py": {
-            "runtime": "python3.11"
+            "runtime": "@vercel/python"
         }
     },
     "routes": [
@@ -15,7 +15,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "/frontend/$1"
+            "dest": "/$1"
         }
     ]
 }
