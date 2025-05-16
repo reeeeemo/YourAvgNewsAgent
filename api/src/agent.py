@@ -6,7 +6,6 @@ from groq import Groq
 import os
 from colorama import Fore
 import re
-from transformers import AutoTokenizer
 
 TOOL_SYSTEM_PROMPT = """
 You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags.
@@ -40,7 +39,6 @@ class ToolAgent():
             model (str): model type to be used for generating tool calls and responses
             tools_dict (dict) dictionary mapping tool names to callable objects
             client (Groq): client to query message from LLM
-            tokenizer: tokenizer to truncuate messages in case they are too long
             chat_history (list): previous chats with system
     '''
     def __init__(self, tools: Tool | list[Tool]):
@@ -50,7 +48,6 @@ class ToolAgent():
         self.client = Groq(
             api_key=os.getenv("GROQ_API_KEY")
         )
-        self.tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
         self.chat_history = []
         self.tool_counter = 0
 
@@ -123,11 +120,11 @@ class ToolAgent():
         prompt = messages[0]
         usr_messages = messages[1:]
 
-        total_tokens = len(self.tokenizer.encode(prompt['content']))
+        total_tokens = int(len(prompt['content']) / 3.5)
         trimmed = [prompt]
 
         for msg in reversed(usr_messages):
-            msg_tokens = len(self.tokenizer.encode(msg['content']))
+            msg_tokens = int(len(msg['content']) / 3.5)
             if total_tokens + msg_tokens > max_total_tokens:
                 break
             trimmed.insert(1, msg)
