@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
-from src.agent import ToolAgent
+from api.agent import ToolAgent
 from dotenv import load_dotenv
-from src.tools import news_search
+from api.tools import news_search
 from flask_cors import CORS
+
 
 load_dotenv()
 
@@ -18,7 +19,7 @@ def query():
     chat_history = data.get('chat_history', [])
 
     agent = ToolAgent(tools=[news_search])
-    agent.chat_history = chat_history
+    agent.chat_history.extend(chat_history)
 
     response = agent.run(usr_query)
     return jsonify({"response": response})

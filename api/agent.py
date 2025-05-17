@@ -1,7 +1,6 @@
 import json
 import logging
-import pandas as pd
-from src.tool import Tool
+from api.tool import Tool
 from groq import Groq
 import os
 from colorama import Fore

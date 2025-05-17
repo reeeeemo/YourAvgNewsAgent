@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
+import TextareaAutosize from 'react-textarea-autosize';
 import './App.css';
 
 function App() {
@@ -50,6 +53,8 @@ function App() {
     }
   };
 
+
+
   return (
     <div className="App">
       <header className="App-header">
@@ -58,20 +63,41 @@ function App() {
         </div>
         
         <div className="chat-box">
-          {messages.map((message, index) => (
-            <p key={index}
-            className={message.role === 'user' ? 'message-blurb' : 'response-blurb'}>
+          {messages.map((message, index) => {
+            const bubbleClass = message.role === 'user' ? 'message-blurb' : 'response-blurb'
+
+            const MarkdownElement = (Tag) => ({ node, ...props}) => (
+              <Tag {...props}/>
+            );
+            
+            return (
+            <div key={index} className={bubbleClass}>
+              <ReactMarkdown rehypePlugins={[rehypeSanitize]}
+              key={index}
+              components={{
+                p: MarkdownElement('p'),
+                ul: MarkdownElement('ul'),
+                ol: MarkdownElement('ol'),
+                li: MarkdownElement('li'),
+                h1: MarkdownElement('h1'),
+                h2: MarkdownElement('h2'),
+                h3: MarkdownElement('h3')
+              }}>
               {message.content}
-            </p>
-          ))}
+              </ReactMarkdown>
+            </div>
+            );
+          })}
         </div>
         <div className="user-response-box">
-          <input type="text" id="query" name="query" 
+          <TextareaAutosize type="text" id="query" name="query" 
           className="input-response"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
-          onKeyDown={(e) => e.key === 'Enter' && !loading  && handleSendMessage()}/>
+          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !loading  && handleSendMessage()}
+          minRows={1}
+          maxRows={6}/>
           <input type="button" id="submit" name="submit" 
           className="submit-response"
           onClick={handleSendMessage}

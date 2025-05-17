@@ -6,11 +6,7 @@
         {
             "src": "/query",
             "methods": ["POST"],
-            "dest": "backend/app.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/index.html"
+            "dest": "api/app.py"
         }
     ]
 }

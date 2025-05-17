@@ -1,7 +1,7 @@
 import pytest
 import json
-from src.tool import tool
-from src.agent import ToolAgent
+from api.tool import tool
+from api.agent import ToolAgent
 
 @pytest.fixture
 def tool_decorator():

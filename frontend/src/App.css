@@ -51,22 +51,22 @@ h1 {
 .message-blurb {
   width: fit-content;
   max-width: 60%;
-  background: #5e6474;
-  padding: 5px 5px;
+  padding: 1px 5px;
   border-radius: 12px;
   margin: 1rem;
-  align-self: flex-start;
+  background-color:rgb(124, 124, 124);
+  align-self: flex-end;
   font-size: 20px;
 }
 
 .response-blurb {
   width: fit-content;
-  max-width: 60%;
-  background: #23272e;
-  padding: 5px 5px;
+  max-width: 100%;
+  padding: 1px 5px;
   border-radius: 12px;
   margin: 1rem;
-  align-self: flex-end;
+  background-color: rgb(83, 83, 83);
+  align-self: flex-start;
   font-size: 20px;
 }
 
@@ -78,6 +78,8 @@ h1 {
   height: 6vh;
   overflow-x: auto;
   border-radius: 15px;
+  overflow: visible;
+  height: auto
 }
 
 .input-response {
@@ -87,7 +89,10 @@ h1 {
   outline: none;
   font-size: 16px;
   color: white;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
+  resize: none;
+  overflow-y: auto;
+  height: auto;
 }
 
 .submit-response {
@@ -103,4 +108,21 @@ h1 {
   background-position: center;
   cursor: pointer;
   filter: brightness(0) invert(1);
+}
+
+.message-blurb p,
+.response-blurb p,
+.message-blurb li,
+.response-blurb li,
+.message-blurb ul,
+.response-blurb ul,
+.message-blurb ol,
+.response-blurb ol,
+.message-blurb h1,
+.response-blurb h1,
+.message-blurb h2,
+.response-blurb h2,
+.message-blurb h3,
+.response-blurb h3 {
+  margin-block: 0.5em;
 }
