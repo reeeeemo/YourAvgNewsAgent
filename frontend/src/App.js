@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-import TextareaAutosize from 'react-textarea-autosize';
 import './App.css';
+import "./Terminal.css"
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false)
+
+  const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '';
 
   // message submission
   const handleSendMessage = async () => {
@@ -34,7 +36,7 @@ function App() {
 
   const queryCall = async (query) => {
     try {
-      const response = await fetch('/query', {
+      const response = await fetch(`${baseUrl}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,21 +58,20 @@ function App() {
 
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <div className="title-box">
-          <h1>Your Average News Agent!</h1>
-        </div>
-        
-        <div className="chat-box">
-          {messages.map((message, index) => {
-            const bubbleClass = message.role === 'user' ? 'message-blurb' : 'response-blurb'
+    <main className="terminal">
+      <header>
+        <h1>$ Your Average News Agent<span className="cursor"/> </h1>
+        <p>Ask me anything about today's headlines! </p>
+      </header>
 
-            const MarkdownElement = (Tag) => ({ node, ...props}) => (
-              <Tag {...props}/>
-            );
-            
-            return (
+      <div className="prompt">
+        {messages.map((message, index) => {
+          const bubbleClass = message.role === 'user' ? 'prompt' : 'article-card'
+
+          const MarkdownElement = (Tag) => ({ node, ...props }) => (
+            <Tag {...props}/>
+          );
+          return (
             <div key={index} className={bubbleClass}>
               <ReactMarkdown rehypePlugins={[rehypeSanitize]}
               key={index}
@@ -86,25 +87,26 @@ function App() {
               {message.content}
               </ReactMarkdown>
             </div>
-            );
-          })}
-        </div>
-        <div className="user-response-box">
-          <TextareaAutosize type="text" id="query" name="query" 
-          className="input-response"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !loading  && handleSendMessage()}
-          minRows={1}
-          maxRows={6}/>
-          <input type="button" id="submit" name="submit" 
-          className="submit-response"
-          onClick={handleSendMessage}
-          disabled={loading}/>
-        </div>
-      </header>
-    </div>
+          );
+        })}
+      </div>
+
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (!loading) handleSendMessage();
+      }} className="terminal-form">
+        <span className="prompt">$</span>
+        <input
+        type="text"
+        placeholder="e.g., Latest on MCP Agents"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        autoFocus
+        disabled={loading}
+        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !loading && handleSendMessage()}
+        />
+       </form>
+    </main>
   );
 }
 

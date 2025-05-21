@@ -1,6 +1,6 @@
 import json
 import logging
-from api.tool import Tool
+from .tool import Tool
 from groq import Groq
 import os
 from colorama import Fore

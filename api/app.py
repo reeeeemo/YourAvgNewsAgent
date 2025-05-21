@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
-from api.agent import ToolAgent
+from .agent import ToolAgent
 from dotenv import load_dotenv
-from api.tools import news_search
+from .tools import news_search
 from flask_cors import CORS
 
 

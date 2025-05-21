@@ -2,7 +2,7 @@ from typing import Literal, List
 import os
 import requests
 from datetime import datetime, timedelta
-from api.tool import tool
+from .tool import tool
 
 LANGUAGES = Literal['en', 'ar', 'de', 'es', 'fr', 'he', 'it', 'nl', 'no', 'pt', 'ru', 'sv', 'ud', 'zh']
 

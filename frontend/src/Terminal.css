@@ -1,0 +1,85 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    background: #0d1117;
+}
+
+.terminal {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100%;
+    padding: 2rem 3rem;
+    background: #0d1117;
+    color: #00ff9d;
+    font-family: "Fira Code", Consolas, monospace;
+    box-sizing: border-box;
+}
+
+.terminal h1 {
+    font-size: clamp(1.6rem, 4vw, 3rem);
+    margin: 0 0 .5rem;
+    line-height: 1.2;
+}
+
+.cursor::after {
+    content: "";
+    display: inline-block;
+    width: 0.65em;
+    height: 1.05em;
+    margin-left: 4px;
+    background: currentColor;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+.terminal-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 1.25rem 0 2rem;
+}
+
+.prompt {
+    color: #00d664;
+    flex-shrink: 0;
+}
+
+.terminal-form input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid currentColor;
+    font: inherit;
+    color: inherit;
+    padding: 0.25rem 0;
+    outline: none;
+}
+
+.terminal-form input::placeholder {
+    color: #00ff9d88;
+}
+
+.article-card {
+    background: rgba(255, 255, 255, .04);
+    border-left: 3px solid #00d664;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 760px;
+    color: #e6edf3;
+}
+
+.article-card a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.article-card a:hover {
+    text-decoration: underline;
+}
