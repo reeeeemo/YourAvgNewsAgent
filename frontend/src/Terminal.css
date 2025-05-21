@@ -41,7 +41,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    width: 100%;
+    width: 50%;
     margin: 1.25rem 0 2rem;
 }
 
