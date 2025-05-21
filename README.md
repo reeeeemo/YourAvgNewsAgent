@@ -19,7 +19,7 @@ An agent equipped with the ability to give you the latest (or previous) news! Eq
     - Backend (api): `pip install -r requirements.txt`
 4. Run locally
     - Frontend: `npm start`
-    - Backend (api): `python api/app.py` 
+    - Backend (api): `flask --app api.app --debug run` 
 
 # Helpful Resources used
 - **Neural Maze: Building AI Agents from Scratch**
